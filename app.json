@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "laender-lernen",
+    "name": "Länder lernen",
     "slug": "laender-lernen",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,11 @@
     "scheme": "laenderlernen",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.paulche.laenderlernen"
     },
     "android": {
+      "package": "com.paulche.laenderlernen",
+      "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,6 +39,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d2ffa43e-08d5-4bad-8b79-810d4bf245c7"
+      }
     }
   }
 }
