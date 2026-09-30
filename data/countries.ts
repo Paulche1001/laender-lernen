@@ -52,8 +52,8 @@ export const countries: Country[] = [
   {
     code: "AR",
     name: "Argentinien",
-    capital: "Spanisch",
-    languages: ["Buenos Aires Hauptstadt: Spanisch"],
+    capital: "Buenos Aires",
+    languages: ["Spanisch"],
     flag: "ar",
   },
   {
@@ -130,7 +130,7 @@ export const countries: Country[] = [
     code: "BJ",
     name: "Benin",
     capital: "Porto-Novo",
-    languages: ["Franösisch"],
+    languages: ["Französisch"],
     flag: "bj",
   },
   {
@@ -144,7 +144,7 @@ export const countries: Country[] = [
     code: "BO",
     name: "Bolivien",
     capital: "Sucre",
-    languages: ["Spanisch", "Quecha", "Aymara", "Guarani"],
+    languages: ["Spanisch", "Quechua", "Aymara", "Guarani"],
     flag: "bo",
   },
   {
@@ -179,7 +179,7 @@ export const countries: Country[] = [
     code: "BG",
     name: "Bulgarien",
     capital: "Sofia",
-    languages: ["Türkisch", "Romani", "Armenisch"],
+    languages: ["Bulgarisch", "Türkisch", "Romani", "Armenisch"],
     flag: "bg",
   },
   {
@@ -190,8 +190,7 @@ export const countries: Country[] = [
       "Mòoré",
       "Fulfulde",
       "Dioula",
-      "Bissasowie als Arbeitssprachen Französisch",
-      "Englisch",
+      "als Arbeitssprachen Französisch und Englisch",
     ],
     flag: "bf",
   },
@@ -352,7 +351,7 @@ export const countries: Country[] = [
   {
     code: "GD",
     name: "Grenada",
-    capital: "St. Georgs´s",
+    capital: "St. George´s",
     languages: ["Englisch"],
     flag: "gd",
   },
@@ -401,7 +400,7 @@ export const countries: Country[] = [
   {
     code: "HN",
     name: "Honduras",
-    capital: "Tegucgalpa",
+    capital: "Tegucigalpa",
     languages: ["Spanisch"],
     flag: "hn",
   },
@@ -464,7 +463,7 @@ export const countries: Country[] = [
   {
     code: "JM",
     name: "Jamaika",
-    capital: "",
+    capital: "Kingston",
     languages: ["Englisch"],
     flag: "jm",
   },
@@ -605,7 +604,7 @@ export const countries: Country[] = [
     code: "LS",
     name: "Lesotho",
     capital: "Maseru",
-    languages: ["Sesothe", "Englisch"],
+    languages: ["Sesotho", "Englisch"],
     flag: "ls",
   },
   {
@@ -697,14 +696,14 @@ export const countries: Country[] = [
       "Tamascheq",
       "Mamara",
       "Boboda",
-      "Xaasongaxango Arbeitssprache: Französisch",
+      "Arbeitssprache: Französisch",
     ],
     flag: "ml",
   },
   {
     code: "MT",
     name: "Malta",
-    capital: "Valetta",
+    capital: "Valletta",
     languages: ["Maltesisch", "Englisch"],
     flag: "mt",
   },
@@ -859,7 +858,7 @@ export const countries: Country[] = [
     code: "MK",
     name: "Nordmazedonien",
     capital: "Skopje",
-    languages: ["Mazedoniach", "Albanisch"],
+    languages: ["Mazedonisch", "Albanisch"],
     flag: "mk",
   },
   {
@@ -1049,7 +1048,8 @@ export const countries: Country[] = [
     name: "Simbabwe",
     capital: "Harare",
     languages: [
-      "Englisch (eig. : Chewa",
+      "Englisch",
+      "(eig. : Chewa",
       "Chibarwe",
       "Englisch",
       "Kalanga",
@@ -1163,7 +1163,7 @@ export const countries: Country[] = [
     code: "ZA",
     name: "Südafrika",
     capital:
-      "Exekutive: PretoriaLegislative: KapstadtJudikative: BloemfonteinSprache: Afrikaans, Englisch, Südafrikanische Gebärdensprache, Süd-Ndebele, isiXhosa, isiZulu, Nord-Sotho, Sesotho, Setswana, Siswati, Tshivenda, Xitsonga",
+      "Pretoria (Exekutive), Kapstadt (Legislative), Bloemfontein (Judikative)",
     languages: [
       "Afrikaans",
       "Englisch",
