@@ -24,53 +24,64 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
+
+      async function loadCardCounts() {
+        if (!user) {
+          return;
+        }
+
+        setCardsLoading(true);
+
+        try {
+          const [progress, settings, daily] = await Promise.all([
+            getUserProgress(user.uid),
+            getUserSettings(user.uid),
+            getDailyProgress(user.uid),
+          ]);
+
+          if (cancelled) {
+            return;
+          }
+
+          const learnedCountryCodes = new Set(Object.keys(progress));
+
+          const now = new Date();
+
+          const due = Object.values(progress).filter(
+            ({ card }) => card.due <= now,
+          ).length;
+
+          const availableNewCountries = countries.filter(
+            (country) => !learnedCountryCodes.has(country.code),
+          ).length;
+
+          const remainingNewCards = Math.max(
+            0,
+            settings.newCardsPerDay - daily.newCardsStarted,
+          );
+
+          const newCards = Math.min(availableNewCountries, remainingNewCards);
+
+          setDueCount(due);
+          setNewCount(newCards);
+          setUnlearnedCount(availableNewCountries);
+        } catch (error) {
+          console.error("Fehler beim Laden der Kartenanzahl:", error);
+        } finally {
+          if (!cancelled) {
+            setCardsLoading(false);
+          }
+        }
+      }
+
       loadCardCounts();
+
+      return () => {
+        cancelled = true;
+      };
     }, [user]),
   );
-
-  async function loadCardCounts() {
-    if (!user) {
-      setCardsLoading(false);
-      return;
-    }
-
-    setCardsLoading(true);
-
-    try {
-      const [progress, settings, daily] = await Promise.all([
-        getUserProgress(user.uid),
-        getUserSettings(user.uid),
-        getDailyProgress(user.uid),
-      ]);
-
-      const learnedCountryCodes = new Set(Object.keys(progress));
-
-      const now = new Date();
-
-      const due = Object.values(progress).filter(
-        ({ card }) => card.due <= now,
-      ).length;
-
-      const availableNewCountries = countries.filter(
-        (country) => !learnedCountryCodes.has(country.code),
-      ).length;
-
-      const remainingNewCards = Math.max(
-        0,
-        settings.newCardsPerDay - daily.newCardsStarted,
-      );
-
-      const newCards = Math.min(availableNewCountries, remainingNewCards);
-
-      setDueCount(due);
-      setNewCount(newCards);
-      setUnlearnedCount(availableNewCountries);
-    } catch (error) {
-      console.error("Fehler beim Laden der Kartenanzahl:", error);
-    } finally {
-      setCardsLoading(false);
-    }
-  }
 
   return (
     <SafeAreaView
@@ -304,35 +315,5 @@ const styles = StyleSheet.create({
 
   spacer: {
     flex: 1,
-  },
-
-  accountCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
-  },
-
-  accountLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-
-  accountText: {
-    fontSize: 15,
-  },
-
-  logoutButton: {
-    minHeight: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 6,
-  },
-
-  logoutText: {
-    fontSize: 15,
-    fontWeight: "600",
   },
 });

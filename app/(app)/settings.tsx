@@ -30,27 +30,33 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  async function loadSettings() {
     const user = auth.currentUser;
 
     if (!user) {
-      setLoading(false);
       return;
     }
 
-    try {
-      const settings = await getUserSettings(user.uid);
+    let cancelled = false;
 
-      setNewCardsPerDay(settings.newCardsPerDay);
-    } catch (error) {
-      console.error("Fehler beim Laden der Einstellungen:", error);
-    } finally {
-      setLoading(false);
-    }
-  }
+    getUserSettings(user.uid)
+      .then((settings) => {
+        if (!cancelled) {
+          setNewCardsPerDay(settings.newCardsPerDay);
+        }
+      })
+      .catch((error) => {
+        console.error("Fehler beim Laden der Einstellungen:", error);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function saveNewCardsPerDay(value: number) {
     const user = auth.currentUser;

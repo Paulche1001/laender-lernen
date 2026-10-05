@@ -3,10 +3,13 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createEmptyCard } from "ts-fsrs";
+
+import { FlashCard } from "../../components/learning/FlashCard";
+import { LearningStateCard } from "../../components/learning/LearningStateCard";
+import { RatingButtons } from "../../components/learning/RatingButtons";
+import { SessionHeader } from "../../components/learning/SessionHeader";
 import { countries } from "../../data/countries";
 import { auth } from "../../firebase/config";
-import { useAppTheme } from "../../theme/useAppTheme";
-
 import { scheduler, toFsrsRating, type Rating } from "../../learning/fsrs";
 import {
   getDailyProgress,
@@ -19,82 +22,109 @@ import {
 } from "../../services/progressService";
 import { saveReview } from "../../services/reviewService";
 import { getUserSettings } from "../../services/settingsService";
+import { useAppTheme } from "../../theme/useAppTheme";
 import { shuffleArray } from "../../utils/shuffle";
 
-/* UI */
-import { FlashCard } from "../../components/learning/FlashCard";
-import { LearningStateCard } from "../../components/learning/LearningStateCard";
-import { RatingButtons } from "../../components/learning/RatingButtons";
-import { SessionHeader } from "../../components/learning/SessionHeader";
+function createSession(
+  loadedProgress: Record<string, CardProgress>,
+  newCardsPerDay: number,
+  newCardsStartedToday: number,
+) {
+  const now = new Date();
+
+  const reviewCountries = countries.filter((country) => {
+    const cardProgress = loadedProgress[country.code];
+
+    return cardProgress && cardProgress.card.due <= now;
+  });
+
+  const newCountries = countries.filter(
+    (country) => !loadedProgress[country.code],
+  );
+
+  const remainingNewCards = Math.max(0, newCardsPerDay - newCardsStartedToday);
+
+  const shuffledReviews = shuffleArray(reviewCountries);
+
+  const shuffledNewCountries = shuffleArray(newCountries).slice(
+    0,
+    remainingNewCards,
+  );
+
+  return [...shuffledReviews, ...shuffledNewCountries];
+}
 
 export default function LearnScreen() {
   const [revealed, setRevealed] = useState(false);
   const [progress, setProgress] = useState<Record<string, CardProgress>>({});
-  const [progressLoading, setProgressLoading] = useState(true);
-  const [newCardsStartedToday, setNewCardsStartedToday] = useState(0);
-  const [dailyLoading, setDailyLoading] = useState(true);
-  const [newCardsPerDay, setNewCardsPerDay] = useState(10);
-  const [settingsLoading, setSettingsLoading] = useState(true);
   const [sessionCountries, setSessionCountries] = useState<typeof countries>(
     [],
   );
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-
-  const country = sessionCountries[currentIndex];
 
   const { colors } = useAppTheme();
 
+  const country = sessionCountries[currentIndex];
+
   useEffect(() => {
-    loadProgress();
-    loadDailyProgress();
-    loadSettings();
+    let cancelled = false;
+
+    async function initializeLearning() {
+      const user = auth.currentUser;
+
+      if (!user) {
+        if (!cancelled) {
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      try {
+        const [loadedProgress, daily, settings] = await Promise.all([
+          getUserProgress(user.uid),
+          getDailyProgress(user.uid),
+          getUserSettings(user.uid),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const session = createSession(
+          loadedProgress,
+          settings.newCardsPerDay,
+          daily.newCardsStarted,
+        );
+
+        setProgress(loadedProgress);
+        setSessionCountries(session);
+      } catch (error) {
+        console.error("Fehler beim Vorbereiten der Lernsession:", error);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    initializeLearning();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    if (progressLoading || dailyLoading || settingsLoading) {
-      return;
-    }
-
-    if (sessionCountries.length > 0) {
-      return;
-    }
-
-    const reviewCountries = countries.filter((country) => {
-      const cardProgress = progress[country.code];
-
-      return cardProgress && cardProgress.card.due <= new Date();
-    });
-
-    const newCountries = countries.filter((country) => {
-      return !progress[country.code];
-    });
-
-    const remainingNewCards = Math.max(
-      0,
-      newCardsPerDay - newCardsStartedToday,
-    );
-
-    const shuffledReviews = shuffleArray(reviewCountries);
-
-    const shuffledNewCountries = shuffleArray(newCountries).slice(
-      0,
-      remainingNewCards,
-    );
-
-    const newSession = [...shuffledReviews, ...shuffledNewCountries];
-
-    setSessionCountries(newSession);
-  }, [progressLoading, dailyLoading, settingsLoading]);
-
   async function rateCard(rating: Rating) {
-    if (isSaving) {
+    if (isSaving || !country) {
       return;
     }
 
     const user = auth.currentUser;
 
-    if (!user || !country) {
+    if (!user) {
       return;
     }
 
@@ -123,8 +153,6 @@ export default function LearnScreen() {
 
       if (isNewCard) {
         await incrementNewCardsStarted(user.uid);
-
-        setNewCardsStartedToday((prev) => prev + 1);
       }
 
       setProgress((prevProgress) => ({
@@ -143,64 +171,7 @@ export default function LearnScreen() {
     }
   }
 
-  async function loadDailyProgress() {
-    const user = auth.currentUser;
-
-    if (!user) {
-      setDailyLoading(false);
-      return;
-    }
-
-    try {
-      const daily = await getDailyProgress(user.uid);
-
-      setNewCardsStartedToday(daily.newCardsStarted);
-    } catch (error) {
-      console.error("Fehler beim Laden des Tagesfortschritts:", error);
-    } finally {
-      setDailyLoading(false);
-    }
-  }
-
-  async function loadSettings() {
-    const user = auth.currentUser;
-
-    if (!user) {
-      setSettingsLoading(false);
-      return;
-    }
-
-    try {
-      const settings = await getUserSettings(user.uid);
-
-      setNewCardsPerDay(settings.newCardsPerDay);
-    } catch (error) {
-      console.error("Fehler beim Laden der Einstellungen:", error);
-    } finally {
-      setSettingsLoading(false);
-    }
-  }
-
-  async function loadProgress() {
-    const user = auth.currentUser;
-
-    if (!user) {
-      setProgressLoading(false);
-      return;
-    }
-
-    try {
-      const loadedProgress = await getUserProgress(user.uid);
-
-      setProgress(loadedProgress);
-    } catch (error) {
-      console.error("Fehler beim Laden des Fortschritts:", error);
-    } finally {
-      setProgressLoading(false);
-    }
-  }
-
-  if (progressLoading || dailyLoading || settingsLoading) {
+  if (loading) {
     return (
       <SafeAreaView
         style={[

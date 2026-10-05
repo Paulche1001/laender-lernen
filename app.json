@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.paulche.laenderlernen",
+      "versionCode": 2,
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
