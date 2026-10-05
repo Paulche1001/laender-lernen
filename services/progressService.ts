@@ -1,9 +1,10 @@
 import {
-    collection,
-    doc,
-    getDocs,
-    serverTimestamp,
-    setDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  serverTimestamp,
+  setDoc,
 } from "firebase/firestore";
 import type { Card as FsrsCard } from "ts-fsrs";
 
@@ -60,4 +61,25 @@ export async function saveCardProgress(
       merge: true,
     },
   );
+}
+
+export async function resetUserProgress(userId: string) {
+  const progressRef = collection(db, "users", userId, "progress");
+
+  const dailyRef = collection(db, "users", userId, "daily");
+
+  const [progressSnapshot, dailySnapshot] = await Promise.all([
+    getDocs(progressRef),
+    getDocs(dailyRef),
+  ]);
+
+  const deleteProgress = progressSnapshot.docs.map((document) =>
+    deleteDoc(document.ref),
+  );
+
+  const deleteDaily = dailySnapshot.docs.map((document) =>
+    deleteDoc(document.ref),
+  );
+
+  await Promise.all([...deleteProgress, ...deleteDaily]);
 }

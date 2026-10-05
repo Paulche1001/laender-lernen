@@ -8,9 +8,10 @@ import { getIntervalLabel } from "../../utils/formatInterval";
 type Props = {
   preview: IPreview;
   onRate: (rating: Rating) => void;
+  disabled?: boolean;
 };
 
-export function RatingButtons({ preview, onRate }: Props) {
+export function RatingButtons({ preview, onRate, disabled = false }: Props) {
   const { colors } = useAppTheme();
 
   return (
@@ -34,6 +35,7 @@ export function RatingButtons({ preview, onRate }: Props) {
               backgroundColor: colors.danger,
             },
           ]}
+          disabled={disabled}
           onPress={() => onRate("again")}
         >
           <Text style={styles.ratingText}>Nochmal</Text>
@@ -45,6 +47,7 @@ export function RatingButtons({ preview, onRate }: Props) {
 
         <Pressable
           style={[styles.ratingButton, styles.hardButton]}
+          disabled={disabled}
           onPress={() => onRate("hard")}
         >
           <Text style={styles.ratingText}>Schwer</Text>
@@ -56,6 +59,7 @@ export function RatingButtons({ preview, onRate }: Props) {
 
         <Pressable
           style={[styles.ratingButton, styles.goodButton]}
+          disabled={disabled}
           onPress={() => onRate("good")}
         >
           <Text style={styles.ratingText}>Gut</Text>
@@ -72,6 +76,7 @@ export function RatingButtons({ preview, onRate }: Props) {
               backgroundColor: colors.success,
             },
           ]}
+          disabled={disabled}
           onPress={() => onRate("easy")}
         >
           <Text style={styles.ratingText}>Einfach</Text>

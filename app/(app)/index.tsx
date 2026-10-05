@@ -1,17 +1,18 @@
-import { router } from "expo-router";
-import { signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
-import { useContext, useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useContext, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { getDailyProgress } from "../../services/dailyService";
+import { getUserProgress } from "../../services/progressService";
+import { getUserSettings } from "../../services/settingsService";
+
 import { AuthContext } from "../../context/AuthContext";
 import { countries } from "../../data/countries";
-import { auth, db } from "../../firebase/config";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function HomeScreen() {
-  const { user, loading } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const { colors } = useAppTheme();
 
   const [dueCount, setDueCount] = useState(0);
@@ -21,103 +22,54 @@ export default function HomeScreen() {
 
   const totalCards = dueCount + newCount;
 
-  useEffect(() => {
-    if (user) {
+  useFocusEffect(
+    useCallback(() => {
       loadCardCounts();
-    }
-  }, [user]);
-
-  function getTodayKey() {
-    const now = new Date();
-
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  }
+    }, [user]),
+  );
 
   async function loadCardCounts() {
-    const currentUser = auth.currentUser;
-
-    if (!currentUser) {
+    if (!user) {
       setCardsLoading(false);
       return;
     }
 
+    setCardsLoading(true);
+
     try {
-      const progressRef = collection(db, "users", currentUser.uid, "progress");
+      const [progress, settings, daily] = await Promise.all([
+        getUserProgress(user.uid),
+        getUserSettings(user.uid),
+        getDailyProgress(user.uid),
+      ]);
 
-      const progressSnapshot = await getDocs(progressRef);
+      const learnedCountryCodes = new Set(Object.keys(progress));
 
-      const learnedCountryCodes = new Set<string>();
+      const now = new Date();
 
-      let due = 0;
-
-      progressSnapshot.forEach((document) => {
-        const data = document.data();
-
-        if (!data.card?.due) {
-          return;
-        }
-
-        learnedCountryCodes.add(document.id);
-
-        const dueDate = data.card.due.toDate();
-
-        if (dueDate <= new Date()) {
-          due++;
-        }
-      });
-
-      const settingsRef = doc(
-        db,
-        "users",
-        currentUser.uid,
-        "settings",
-        "preferences",
-      );
-
-      const settingsSnapshot = await getDoc(settingsRef);
-
-      const newCardsPerDay = settingsSnapshot.data()?.newCardsPerDay ?? 10;
-
-      const dailyRef = doc(
-        db,
-        "users",
-        currentUser.uid,
-        "daily",
-        getTodayKey(),
-      );
-
-      const dailySnapshot = await getDoc(dailyRef);
-
-      const newCardsStartedToday = dailySnapshot.data()?.newCardsStarted ?? 0;
-
-      const remainingNewCards = Math.max(
-        0,
-        newCardsPerDay - newCardsStartedToday,
-      );
+      const due = Object.values(progress).filter(
+        ({ card }) => card.due <= now,
+      ).length;
 
       const availableNewCountries = countries.filter(
         (country) => !learnedCountryCodes.has(country.code),
       ).length;
 
-      setUnlearnedCount(availableNewCountries);
+      const remainingNewCards = Math.max(
+        0,
+        settings.newCardsPerDay - daily.newCardsStarted,
+      );
 
       const newCards = Math.min(availableNewCountries, remainingNewCards);
 
       setDueCount(due);
       setNewCount(newCards);
+      setUnlearnedCount(availableNewCountries);
     } catch (error) {
       console.error("Fehler beim Laden der Kartenanzahl:", error);
     } finally {
       setCardsLoading(false);
     }
-  }
-
-  async function logout() {
-    await signOut(auth);
   }
 
   return (

@@ -1,13 +1,5 @@
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -20,8 +12,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { resetUserProgress } from "../../services/progressService";
+import {
+  getUserSettings,
+  saveNewCardsPerDay as saveNewCardsPerDaySetting,
+  saveThemeMode as saveThemeModeSetting,
+} from "../../services/settingsService";
 
-import { auth, db } from "../../firebase/config";
+import { auth } from "../../firebase/config";
 import { ThemeMode } from "../../theme/ThemeContext";
 import { useAppTheme } from "../../theme/useAppTheme";
 
@@ -44,15 +42,9 @@ export default function SettingsScreen() {
     }
 
     try {
-      const settingsRef = doc(db, "users", user.uid, "settings", "preferences");
+      const settings = await getUserSettings(user.uid);
 
-      const snapshot = await getDoc(settingsRef);
-
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-
-        setNewCardsPerDay(data.newCardsPerDay ?? 10);
-      }
+      setNewCardsPerDay(settings.newCardsPerDay);
     } catch (error) {
       console.error("Fehler beim Laden der Einstellungen:", error);
     } finally {
@@ -69,23 +61,19 @@ export default function SettingsScreen() {
 
     setNewCardsPerDay(value);
 
-    const settingsRef = doc(db, "users", user.uid, "settings", "preferences");
-
-    await setDoc(
-      settingsRef,
-      {
-        newCardsPerDay: value,
-      },
-      {
-        merge: true,
-      },
-    );
+    try {
+      await saveNewCardsPerDaySetting(user.uid, value);
+    } catch (error) {
+      console.error(
+        "Neue Karten pro Tag konnten nicht gespeichert werden:",
+        error,
+      );
+    }
   }
 
   async function saveThemeMode(value: ThemeMode) {
     const user = auth.currentUser;
 
-    // Sofort UI umschalten
     setMode(value);
 
     if (!user) {
@@ -93,22 +81,11 @@ export default function SettingsScreen() {
     }
 
     try {
-      const settingsRef = doc(db, "users", user.uid, "settings", "preferences");
-
-      await setDoc(
-        settingsRef,
-        {
-          themeMode: value,
-        },
-        {
-          merge: true,
-        },
-      );
+      await saveThemeModeSetting(user.uid, value);
     } catch (error) {
       console.error("Theme konnte nicht gespeichert werden:", error);
     }
   }
-
   async function logout() {
     await signOut(auth);
   }
@@ -121,23 +98,7 @@ export default function SettingsScreen() {
     }
 
     try {
-      const progressRef = collection(db, "users", user.uid, "progress");
-
-      const dailyRef = collection(db, "users", user.uid, "daily");
-
-      const progressSnapshot = await getDocs(progressRef);
-
-      const dailySnapshot = await getDocs(dailyRef);
-
-      const deleteProgress = progressSnapshot.docs.map((document) =>
-        deleteDoc(document.ref),
-      );
-
-      const deleteDaily = dailySnapshot.docs.map((document) =>
-        deleteDoc(document.ref),
-      );
-
-      await Promise.all([...deleteProgress, ...deleteDaily]);
+      await resetUserProgress(user.uid);
 
       if (Platform.OS === "web") {
         window.alert("Fortschritt wurde zurückgesetzt.");
@@ -634,20 +595,6 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 14,
     lineHeight: 20,
-  },
-
-  optionRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  optionButton: {
-    flex: 1,
-    minHeight: 46,
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   optionText: {

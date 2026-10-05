@@ -39,6 +39,8 @@ export default function LearnScreen() {
     [],
   );
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
   const country = sessionCountries[currentIndex];
 
   const { colors } = useAppTheme();
@@ -86,48 +88,59 @@ export default function LearnScreen() {
   }, [progressLoading, dailyLoading, settingsLoading]);
 
   async function rateCard(rating: Rating) {
-    const user = auth.currentUser;
-
-    if (!user) {
+    if (isSaving) {
       return;
     }
 
-    const currentProgress = progress[country.code];
+    const user = auth.currentUser;
 
-    const currentCard = currentProgress?.card ?? createEmptyCard();
-
-    const now = new Date();
-
-    const result = scheduler.next(currentCard, now, toFsrsRating(rating));
-
-    const nextCard = result.card;
-
-    const isNewCard = !currentProgress;
-
-    await saveReview({
-      userId: user.uid,
-      countryCode: country.code,
-      rating,
-      reviewedAt: now,
-      log: result.log,
-    });
-
-    await saveCardProgress(user.uid, country.code, nextCard);
-    if (isNewCard) {
-      await incrementNewCardsStarted(user.uid);
-
-      setNewCardsStartedToday((prev) => prev + 1);
+    if (!user || !country) {
+      return;
     }
 
-    setProgress((prevProgress) => ({
-      ...prevProgress,
-      [country.code]: {
-        card: nextCard,
-      },
-    }));
+    setIsSaving(true);
 
-    setRevealed(false);
-    setCurrentIndex((prev) => prev + 1);
+    try {
+      const currentProgress = progress[country.code];
+      const currentCard = currentProgress?.card ?? createEmptyCard();
+
+      const now = new Date();
+
+      const result = scheduler.next(currentCard, now, toFsrsRating(rating));
+
+      const nextCard = result.card;
+      const isNewCard = !currentProgress;
+
+      await saveReview({
+        userId: user.uid,
+        countryCode: country.code,
+        rating,
+        reviewedAt: now,
+        log: result.log,
+      });
+
+      await saveCardProgress(user.uid, country.code, nextCard);
+
+      if (isNewCard) {
+        await incrementNewCardsStarted(user.uid);
+
+        setNewCardsStartedToday((prev) => prev + 1);
+      }
+
+      setProgress((prevProgress) => ({
+        ...prevProgress,
+        [country.code]: {
+          card: nextCard,
+        },
+      }));
+
+      setRevealed(false);
+      setCurrentIndex((prev) => prev + 1);
+    } catch (error) {
+      console.error("Fehler beim Speichern der Bewertung:", error);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function loadDailyProgress() {
@@ -256,7 +269,13 @@ export default function LearnScreen() {
             onReveal={() => setRevealed(true)}
           />
 
-          {revealed && <RatingButtons preview={preview} onRate={rateCard} />}
+          {revealed && (
+            <RatingButtons
+              preview={preview}
+              onRate={rateCard}
+              disabled={isSaving}
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>

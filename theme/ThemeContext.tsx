@@ -1,15 +1,14 @@
-import { doc, getDoc } from "firebase/firestore";
 import {
-    createContext,
-    ReactNode,
-    useContext,
-    useEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
 import { useColorScheme } from "react-native";
+import { getUserSettings } from "../services/settingsService";
 
 import { AuthContext } from "../context/AuthContext";
-import { db } from "../firebase/config";
 import { darkColors, lightColors } from "./colors";
 
 export type ThemeMode = "system" | "light" | "dark";
@@ -43,27 +42,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const settingsRef = doc(
-          db,
-          "users",
-          user.uid,
-          "settings",
-          "preferences",
-        );
+        const settings = await getUserSettings(user.uid);
 
-        const snapshot = await getDoc(settingsRef);
-
-        if (snapshot.exists()) {
-          const savedMode = snapshot.data().themeMode;
-
-          if (
-            savedMode === "system" ||
-            savedMode === "light" ||
-            savedMode === "dark"
-          ) {
-            setMode(savedMode);
-          }
-        }
+        setMode(settings.themeMode);
       } catch (error) {
         console.error("Theme konnte nicht geladen werden:", error);
       }
