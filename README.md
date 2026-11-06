@@ -1,56 +1,80 @@
-# Welcome to your Expo app 👋
+# 🌍 Länder lernen
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Länder lernen** ist eine mit **React Native, Expo und TypeScript** entwickelte Karteikarten-App zum Lernen von Ländern, Hauptstädten, Flaggen und Sprachen. Ein intelligentes Wiederholungssystem plant Lernkarten abhängig davon, wie sicher die Antwort bereits sitzt.
 
-## Get started
+Das Projekt ist eine eigenständig entwickelte Lernanwendung und dient auch als Beispiel für meine praktische Arbeit mit mobilen Benutzeroberflächen, zustandsbasierter Logik und Firebase.
 
-1. Install dependencies
+## ✨ Funktionen
 
-   ```bash
-   npm install
-   ```
+- **Interaktive Karteikarten** zu Ländern, Hauptstädten, Flaggen und Sprachen
+- **Selbsteinschätzung nach jeder Karte** mit „Again“, „Hard“, „Good“ und „Easy“
+- **Spaced Repetition mit FSRS** (`ts-fsrs`): individuelle Wiederholungstermine statt fester Intervalle
+- **Tägliches Lernlimit** für neue Karten, in den Einstellungen anpassbar
+- **Lernübersicht** mit fälligen Wiederholungen, neuen und noch ungelernten Karten
+- **Benutzerregistrierung und Anmeldung** über Firebase Authentication
+- **Speicherung des Lernfortschritts** und der Einstellungen mit Cloud Firestore
+- **Design-Einstellungen** und Möglichkeit, den eigenen Lernfortschritt zurückzusetzen
 
-2. Start the app
+## 🛠️ Technologien
 
-   ```bash
-   npx expo start
-   ```
+| Bereich | Technologie |
+| --- | --- |
+| App & Benutzeroberfläche | React Native, Expo, Expo Router |
+| Programmiersprache | TypeScript |
+| Authentifizierung | Firebase Authentication |
+| Datenhaltung | Cloud Firestore |
+| Wiederholungsalgorithmus | FSRS (`ts-fsrs`) |
+| Weitere Bausteine | React Hooks, React Context |
 
-In the output, you'll find options to open the app in a
+## 🧠 So funktioniert das Lernen
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+1. Die App stellt fällige Wiederholungen und eine begrenzte Zahl neuer Länder zu einer Lerneinheit zusammen.
+2. Eine Karte zeigt zunächst die Frage; die Lösung kann aufgedeckt werden.
+3. Die lernende Person bewertet, wie gut sie die Antwort wusste.
+4. Der **FSRS-Algorithmus** berechnet anhand der Bewertung und des bisherigen Kartenstatus den nächsten Wiederholungszeitpunkt.
+5. Fortschritt und Bewertungen werden für das angemeldete Benutzerkonto gespeichert.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🚀 Lokal starten
 
-## Get a fresh project
-
-When you're ready, run:
+**Voraussetzungen:** Node.js, npm und eine passende Expo-Entwicklungsumgebung.
 
 ```bash
-npm run reset-project
+git clone https://github.com/Paulche1001/laender-lernen.git
+cd laender-lernen
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Anschließend die App mit einer unterstützten Expo-Umgebung oder im Web öffnen. Für die Anmeldung und die Speicherung des Lernfortschritts wird ein entsprechend konfiguriertes Firebase-Projekt benötigt.
 
-### Other setup steps
+> **Hinweis:** Im Repository ist eine Firebase-Projektkonfiguration enthalten. Für den Einsatz mit einem eigenen Projekt müssen Firebase Authentication und Cloud Firestore eingerichtet und ihre Sicherheitsregeln passend konfiguriert werden.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## 📁 Projektstruktur
 
-## Learn more
+```text
+app/              # Screens und Navigation (Expo Router)
+components/       # Wiederverwendbare UI-Komponenten
+context/          # Authentifizierungsstatus
+data/             # Länderdaten
+firebase/         # Firebase-Initialisierung
+learning/         # FSRS-Konfiguration und Bewertungen
+services/         # Datenzugriff und Fortschrittsverwaltung
+theme/            # Design und Theme-Verwaltung
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## 🎯 Was ich mit dem Projekt umgesetzt habe
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Entwicklung einer plattformübergreifenden App mit **React Native und TypeScript**
+- Aufteilung von Benutzeroberfläche, Lernlogik und Datenzugriff in separate Komponenten und Module
+- Integration von **Firebase Auth** und **Firestore**
+- Umsetzung eines personalisierten Wiederholungssystems auf Basis eines bestehenden Scheduling-Algorithmus
 
-## Join the community
+## 👤 Entwickler
 
-Join our community of developers creating universal apps.
+**Paul Koob** · B.Sc. Angewandte Informatik, Schwerpunkt Software Engineering & Development
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+[GitHub-Profil](https://github.com/Paulche1001)
+
+---
+
+*Privates Lern- und Portfolio-Projekt.*
