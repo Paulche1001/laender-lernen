@@ -235,6 +235,7 @@ export default function LearnScreen() {
           />
 
           <FlashCard
+            key={country.code}
             country={country}
             revealed={revealed}
             onReveal={() => setRevealed(true)}
@@ -260,6 +261,7 @@ const styles = StyleSheet.create({
 
   page: {
     flex: 1,
+    minHeight: 0,
     alignItems: "center",
   },
 
@@ -267,6 +269,7 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 650,
     flex: 1,
+    minHeight: 0,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 24,

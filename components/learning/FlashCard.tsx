@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { flagImages } from "../../assets/flagImages";
 import { countries } from "../../data/countries";
@@ -25,98 +25,104 @@ export function FlashCard({ country, revealed, onReveal }: Props) {
         },
       ]}
     >
-      <Text
-        style={[
-          styles.countryName,
-          {
-            color: colors.text,
-          },
-        ]}
+      <ScrollView
+        style={styles.scrollArea}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator
       >
-        {country.name}
-      </Text>
-
-      {revealed ? (
-        <View style={styles.answer}>
-          <View
-            style={[
-              styles.flagContainer,
-              {
-                backgroundColor: colors.surfaceMuted,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Image
-              source={flagImages[country.flag]}
-              resizeMode="contain"
-              style={styles.flag}
-            />
-          </View>
-
-          <View style={styles.details}>
-            <View>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  {
-                    color: colors.textMuted,
-                  },
-                ]}
-              >
-                Hauptstadt
-              </Text>
-
-              <Text
-                style={[
-                  styles.detailValue,
-                  {
-                    color: colors.text,
-                  },
-                ]}
-              >
-                {country.capital}
-              </Text>
-            </View>
-
-            <View>
-              <Text
-                style={[
-                  styles.detailLabel,
-                  {
-                    color: colors.textMuted,
-                  },
-                ]}
-              >
-                Sprachen
-              </Text>
-
-              <Text
-                style={[
-                  styles.detailValue,
-                  {
-                    color: colors.text,
-                  },
-                ]}
-              >
-                {country.languages.join(", ")}
-              </Text>
-            </View>
-          </View>
-        </View>
-      ) : (
-        <Pressable
-          style={({ pressed }) => [
-            styles.revealButton,
+        <Text
+          style={[
+            styles.countryName,
             {
-              backgroundColor: pressed ? colors.primaryPressed : colors.primary,
+              color: colors.text,
             },
           ]}
-          onPress={onReveal}
         >
-          <Text style={styles.revealButtonText}>Antwort anzeigen</Text>
-        </Pressable>
-      )}
+          {country.name}
+        </Text>
+
+        {revealed ? (
+          <View style={styles.answer}>
+            <View
+              style={[
+                styles.flagContainer,
+                {
+                  backgroundColor: colors.surfaceMuted,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Image
+                source={flagImages[country.flag]}
+                resizeMode="contain"
+                style={styles.flag}
+              />
+            </View>
+
+            <View style={styles.details}>
+              <View>
+                <Text
+                  style={[
+                    styles.detailLabel,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  Hauptstadt
+                </Text>
+
+                <Text
+                  style={[
+                    styles.detailValue,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  {country.capital}
+                </Text>
+              </View>
+
+              <View>
+                <Text
+                  style={[
+                    styles.detailLabel,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  Sprachen
+                </Text>
+
+                <Text
+                  style={[
+                    styles.detailValue,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  {country.languages.join(", ")}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={({ pressed }) => [
+              styles.revealButton,
+              {
+                backgroundColor: pressed ? colors.primaryPressed : colors.primary,
+              },
+            ]}
+            onPress={onReveal}
+          >
+            <Text style={styles.revealButtonText}>Antwort anzeigen</Text>
+          </Pressable>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -124,9 +130,20 @@ export function FlashCard({ country, revealed, onReveal }: Props) {
 const styles = StyleSheet.create({
   flashcard: {
     flex: 1,
+    minHeight: 0,
     width: "100%",
     borderWidth: 1,
     borderRadius: 24,
+    overflow: "hidden",
+  },
+
+  scrollArea: {
+    flex: 1,
+    width: "100%",
+  },
+
+  content: {
+    flexGrow: 1,
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
@@ -134,6 +151,7 @@ const styles = StyleSheet.create({
   },
 
   countryName: {
+    width: "100%",
     fontSize: 34,
     fontWeight: "800",
     textAlign: "center",
@@ -146,6 +164,7 @@ const styles = StyleSheet.create({
   },
 
   flagContainer: {
+    flexShrink: 0,
     width: "100%",
     maxWidth: 280,
     height: 170,
