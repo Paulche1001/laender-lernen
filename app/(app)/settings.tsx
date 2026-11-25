@@ -1,6 +1,5 @@
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
-import { useEffect, useState } from "react";
 import {
   Alert,
   Platform,
@@ -8,74 +7,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { resetUserProgress } from "../../services/progressService";
-import {
-  getUserSettings,
-  saveNewCardsPerDay as saveNewCardsPerDaySetting,
-  saveThemeMode as saveThemeModeSetting,
-} from "../../services/settingsService";
 
 import { auth } from "../../firebase/config";
+import { resetUserProgress } from "../../services/progressService";
+import { saveThemeMode as saveThemeModeSetting } from "../../services/settingsService";
 import { ThemeMode } from "../../theme/ThemeContext";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function SettingsScreen() {
   const { colors, mode, setMode } = useAppTheme();
-
-  const [newCardsPerDay, setNewCardsPerDay] = useState(10);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-
-    if (!user) {
-      return;
-    }
-
-    let cancelled = false;
-
-    getUserSettings(user.uid)
-      .then((settings) => {
-        if (!cancelled) {
-          setNewCardsPerDay(settings.newCardsPerDay);
-        }
-      })
-      .catch((error) => {
-        console.error("Fehler beim Laden der Einstellungen:", error);
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function saveNewCardsPerDay(value: number) {
-    const user = auth.currentUser;
-
-    if (!user) {
-      return;
-    }
-
-    setNewCardsPerDay(value);
-
-    try {
-      await saveNewCardsPerDaySetting(user.uid, value);
-    } catch (error) {
-      console.error(
-        "Neue Karten pro Tag konnten nicht gespeichert werden:",
-        error,
-      );
-    }
-  }
 
   async function saveThemeMode(value: ThemeMode) {
     const user = auth.currentUser;
@@ -92,6 +35,7 @@ export default function SettingsScreen() {
       console.error("Theme konnte nicht gespeichert werden:", error);
     }
   }
+
   async function logout() {
     await signOut(auth);
   }
@@ -146,25 +90,6 @@ export default function SettingsScreen() {
     );
   }
 
-  if (loading) {
-    return (
-      <SafeAreaView
-        style={[
-          styles.safeArea,
-          {
-            backgroundColor: colors.background,
-          },
-        ]}
-      >
-        <View style={styles.loadingContainer}>
-          <Text style={{ color: colors.text }}>
-            Einstellungen werden geladen...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView
       style={[
@@ -204,120 +129,6 @@ export default function SettingsScreen() {
             </Text>
           </View>
 
-          {/* Lernen */}
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              Lernen
-            </Text>
-
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: colors.textMuted,
-                },
-              ]}
-            >
-              Neue Karten pro Tag
-            </Text>
-
-            <View style={styles.numberControl}>
-              <Pressable
-                style={[
-                  styles.stepButton,
-                  {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() =>
-                  saveNewCardsPerDay(Math.max(1, newCardsPerDay - 1))
-                }
-              >
-                <Text style={[styles.stepButtonText, { color: colors.text }]}>
-                  −
-                </Text>
-              </Pressable>
-
-              <TextInput
-                style={[
-                  styles.numberInput,
-                  {
-                    color: colors.text,
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                  },
-                ]}
-                value={String(newCardsPerDay)}
-                onChangeText={(text) => {
-                  const value = Number(text);
-
-                  if (Number.isInteger(value) && value >= 1 && value <= 100) {
-                    setNewCardsPerDay(value);
-                  }
-                }}
-                onBlur={() => {
-                  saveNewCardsPerDay(newCardsPerDay);
-                }}
-                onSubmitEditing={() => {
-                  saveNewCardsPerDay(newCardsPerDay);
-                }}
-                keyboardType="number-pad"
-                returnKeyType="done"
-                maxLength={3}
-                selectTextOnFocus
-              />
-
-              <Pressable
-                style={[
-                  styles.stepButton,
-                  {
-                    backgroundColor: colors.surfaceMuted,
-                    borderColor: colors.border,
-                  },
-                ]}
-                onPress={() =>
-                  saveNewCardsPerDay(Math.min(100, newCardsPerDay + 1))
-                }
-              >
-                <Text style={[styles.stepButtonText, { color: colors.text }]}>
-                  +
-                </Text>
-              </Pressable>
-            </View>
-
-            <Text style={[styles.helperText, { color: colors.textMuted }]}>
-              Zwischen 1 und 100 neue Karten pro Tag
-            </Text>
-
-            <Text
-              style={[
-                styles.helperText,
-                {
-                  color: colors.textMuted,
-                },
-              ]}
-            >
-              Aktuell {newCardsPerDay} neue Karten pro Tag
-            </Text>
-          </View>
-
-          {/* Darstellung */}
           <View
             style={[
               styles.card,
@@ -365,7 +176,6 @@ export default function SettingsScreen() {
                 },
               ].map((option) => {
                 const value = option.value as ThemeMode;
-
                 const selected = mode === value;
 
                 return (
@@ -377,7 +187,6 @@ export default function SettingsScreen() {
                         backgroundColor: selected
                           ? colors.primary
                           : colors.surfaceMuted,
-
                         borderColor: selected ? colors.primary : colors.border,
                       },
                     ]}
@@ -399,7 +208,6 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Gefahrenbereich */}
           <View
             style={[
               styles.card,
@@ -454,7 +262,6 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
 
-          {/* Konto */}
           <View
             style={[
               styles.card,
@@ -514,7 +321,6 @@ export default function SettingsScreen() {
               styles.backButton,
               {
                 backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-
                 borderColor: colors.border,
               },
             ]}
@@ -559,12 +365,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 32,
     gap: 16,
-  },
-
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   header: {
@@ -620,36 +420,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-  },
-  numberControl: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-
-  stepButton: {
-    width: 48,
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  stepButtonText: {
-    fontSize: 24,
-    fontWeight: "600",
-  },
-
-  numberInput: {
-    flex: 1,
-    minHeight: 48,
-    borderWidth: 1,
-    borderRadius: 12,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "700",
-    paddingHorizontal: 12,
   },
 
   accountEmail: {

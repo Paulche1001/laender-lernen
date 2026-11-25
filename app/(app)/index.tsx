@@ -5,10 +5,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { getDailyProgress } from "../../services/dailyService";
 import { getUserProgress } from "../../services/progressService";
-import { getUserSettings } from "../../services/settingsService";
 
 import { AuthContext } from "../../context/AuthContext";
 import { countries } from "../../data/countries";
+import { getSetSettings } from "../../services/settingsService";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function HomeScreen() {
@@ -34,10 +34,10 @@ export default function HomeScreen() {
         setCardsLoading(true);
 
         try {
-          const [progress, settings, daily] = await Promise.all([
-            getUserProgress(user.uid),
-            getUserSettings(user.uid),
-            getDailyProgress(user.uid),
+          const [progress, daily, settings] = await Promise.all([
+            getUserProgress(user.uid, "countries"),
+            getDailyProgress(user.uid, "countries"),
+            getSetSettings(user.uid, "countries"),
           ]);
 
           if (cancelled) {
@@ -94,28 +94,54 @@ export default function HomeScreen() {
     >
       <View style={styles.page}>
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text
-              style={[
-                styles.title,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              Länder lernen 🌍
-            </Text>
+          <View style={styles.headerRow}>
+            <View style={styles.header}>
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                Länder lernen 🌍
+              </Text>
 
-            <Text
-              style={[
-                styles.subtitle,
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    color: colors.textMuted,
+                  },
+                ]}
+              >
+                Lerne Länder, Hauptstädte und Sprachen
+              </Text>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.settingsButton,
                 {
-                  color: colors.textMuted,
+                  backgroundColor: pressed
+                    ? colors.surfaceMuted
+                    : colors.surface,
+                  borderColor: colors.border,
                 },
               ]}
+              onPress={() => router.navigate("/settings")}
             >
-              Lerne Länder, Hauptstädte und Sprachen
-            </Text>
+              <Text
+                style={[
+                  styles.settingsButtonText,
+                  {
+                    color: colors.text,
+                  },
+                ]}
+              >
+                ⚙️
+              </Text>
+            </Pressable>
           </View>
 
           <View
@@ -127,16 +153,61 @@ export default function HomeScreen() {
               },
             ]}
           >
-            <Text
-              style={[
-                styles.cardLabel,
-                {
-                  color: colors.textMuted,
-                },
-              ]}
-            >
-              Heute zu lernen
-            </Text>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardHeaderText}>
+                <Text
+                  style={[
+                    styles.setTitle,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  Länder 🌍
+                </Text>
+
+                <Text
+                  style={[
+                    styles.cardLabel,
+                    {
+                      color: colors.textMuted,
+                    },
+                  ]}
+                >
+                  Heute zu lernen
+                </Text>
+              </View>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.moreButton,
+                  {
+                    backgroundColor: pressed
+                      ? colors.surfaceMuted
+                      : "transparent",
+                  },
+                ]}
+                onPress={() =>
+                  router.navigate({
+                    pathname: "/set-settings",
+                    params: {
+                      setId: "countries",
+                    },
+                  })
+                }
+              >
+                <Text
+                  style={[
+                    styles.moreButtonText,
+                    {
+                      color: colors.text,
+                    },
+                  ]}
+                >
+                  ⋮
+                </Text>
+              </Pressable>
+            </View>
 
             {cardsLoading ? (
               <Text
@@ -172,6 +243,7 @@ export default function HomeScreen() {
                 >
                   {dueCount} Wiederholungen · {newCount} neue Karten
                 </Text>
+
                 <Text
                   style={[
                     styles.cardDescription,
@@ -182,45 +254,23 @@ export default function HomeScreen() {
                 >
                   Noch {unlearnedCount} ungelernt
                 </Text>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.cardStartButton,
+                    {
+                      backgroundColor: pressed
+                        ? colors.primaryPressed
+                        : colors.primary,
+                    },
+                  ]}
+                  onPress={() => router.navigate("/learn")}
+                >
+                  <Text style={styles.cardStartButtonText}>Lernen starten</Text>
+                </Pressable>
               </>
             )}
           </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.primaryButton,
-              {
-                backgroundColor: pressed
-                  ? colors.primaryPressed
-                  : colors.primary,
-              },
-            ]}
-            onPress={() => router.navigate("/learn")}
-          >
-            <Text style={styles.primaryButtonText}>Lernen starten</Text>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              {
-                backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => router.navigate("/settings")}
-          >
-            <Text
-              style={[
-                styles.secondaryButtonText,
-                {
-                  color: colors.text,
-                },
-              ]}
-            >
-              Einstellungen
-            </Text>
-          </Pressable>
 
           <View style={styles.spacer} />
         </View>
@@ -247,11 +297,6 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 24,
     gap: 16,
-  },
-
-  header: {
-    gap: 6,
-    marginBottom: 8,
   },
 
   title: {
@@ -285,35 +330,76 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  primaryButton: {
-    minHeight: 52,
+  spacer: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+
+  header: {
+    flex: 1,
+    gap: 6,
+  },
+
+  settingsButton: {
+    width: 48,
+    height: 48,
+    borderWidth: 1,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  settingsButtonText: {
+    fontSize: 20,
+  },
+
+  cardStartButton: {
+    minHeight: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
     paddingHorizontal: 20,
   },
 
-  primaryButtonText: {
+  cardStartButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
   },
 
-  secondaryButton: {
-    minHeight: 52,
-    borderWidth: 1,
-    borderRadius: 14,
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+
+  cardHeaderText: {
+    flex: 1,
+    gap: 4,
+  },
+
+  setTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+
+  moreButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
   },
 
-  secondaryButtonText: {
-    fontSize: 16,
+  moreButtonText: {
+    fontSize: 26,
     fontWeight: "600",
-  },
-
-  spacer: {
-    flex: 1,
+    lineHeight: 28,
   },
 });

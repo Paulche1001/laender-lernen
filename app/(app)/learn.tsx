@@ -21,7 +21,7 @@ import {
   type CardProgress,
 } from "../../services/progressService";
 import { saveReview } from "../../services/reviewService";
-import { getUserSettings } from "../../services/settingsService";
+import { getSetSettings } from "../../services/settingsService";
 import { useAppTheme } from "../../theme/useAppTheme";
 import { shuffleArray } from "../../utils/shuffle";
 
@@ -84,9 +84,9 @@ export default function LearnScreen() {
 
       try {
         const [loadedProgress, daily, settings] = await Promise.all([
-          getUserProgress(user.uid),
-          getDailyProgress(user.uid),
-          getUserSettings(user.uid),
+          getUserProgress(user.uid, "countries"),
+          getDailyProgress(user.uid, "countries"),
+          getSetSettings(user.uid, "countries"),
         ]);
 
         if (cancelled) {
@@ -149,10 +149,10 @@ export default function LearnScreen() {
         log: result.log,
       });
 
-      await saveCardProgress(user.uid, country.code, nextCard);
+      await saveCardProgress(user.uid, "countries", country.code, nextCard);
 
       if (isNewCard) {
-        await incrementNewCardsStarted(user.uid);
+        await incrementNewCardsStarted(user.uid, "countries");
       }
 
       setProgress((prevProgress) => ({
