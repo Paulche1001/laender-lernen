@@ -1,13 +1,14 @@
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   serverTimestamp,
-  setDoc
+  setDoc,
+  writeBatch,
 } from "firebase/firestore";
 import type { Card as FsrsCard } from "ts-fsrs";
 
+import { countries } from "../data/countries";
 import { db } from "../firebase/config";
 
 export type CardProgress = {
@@ -103,7 +104,11 @@ export async function saveCardProgress(
   );
 }
 
-export async function resetUserProgress(userId: string) {
+export async function resetSetProgress(userId: string, setId: string) {
+  if (!userId || !setId) {
+    throw new Error("Benutzer und Lernset müssen angegeben werden.");
+  }
+
   const progressRef = collection(db, "users", userId, "progress");
 
   const dailyRef = collection(db, "users", userId, "daily");
@@ -113,13 +118,27 @@ export async function resetUserProgress(userId: string) {
     getDocs(dailyRef),
   ]);
 
-  const deleteProgress = progressSnapshot.docs.map((document) =>
-    deleteDoc(document.ref),
-  );
+  const countryCodes = new Set(countries.map(({ code }) => code));
+  const progressToDelete = progressSnapshot.docs.filter((document) => {
+    const data = document.data();
+    return data.setId === setId || (
+      setId === "countries" && !data.setId && !data.cardId && countryCodes.has(document.id)
+    );
+  });
+  const dailyToDelete = dailySnapshot.docs.filter((document) => {
+    const data = document.data();
+    return data.setId === setId || (
+      setId === "countries" && !data.setId && /^\d{4}-\d{2}-\d{2}$/.test(document.id)
+    );
+  });
 
-  const deleteDaily = dailySnapshot.docs.map((document) =>
-    deleteDoc(document.ref),
-  );
-
-  await Promise.all([...deleteProgress, ...deleteDaily]);
+  const documents = [...progressToDelete, ...dailyToDelete];
+  // Keep requests bounded even for sets with several years of daily records.
+  for (let index = 0; index < documents.length; index += 450) {
+    const batch = writeBatch(db);
+    for (const document of documents.slice(index, index + 450)) {
+      batch.delete(document.ref);
+    }
+    await batch.commit();
+  }
 }

@@ -4,13 +4,13 @@ import { useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function AuthLayout() {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, isGuest } = useContext(AuthContext);
 
   if (loading) {
     return null;
   }
 
-  if (user) {
+  if (user || isGuest) {
     return <Redirect href="/" />;
   }
 

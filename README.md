@@ -12,8 +12,9 @@ Das Projekt ist eine eigenständig entwickelte Lernanwendung und dient auch als 
 - **Tägliches Lernlimit** für neue Karten, in den Einstellungen anpassbar
 - **Lernübersicht** mit fälligen Wiederholungen, neuen und noch ungelernten Karten
 - **Benutzerregistrierung und Anmeldung** über Firebase Authentication
+- **Gastmodus ohne Anmeldung:** zufällige Länder pro Übungsrunde, mit einstellbarer Anzahl von 1 bis 100. Es wird kein Lernfortschritt gespeichert.
 - **Speicherung des Lernfortschritts** und der Einstellungen mit Cloud Firestore
-- **Design-Einstellungen** und Möglichkeit, den eigenen Lernfortschritt zurückzusetzen
+- **Design-Einstellungen** und Zurücksetzen des Lernfortschritts pro Set mit Warnhinweis und Bestätigung in den jeweiligen Set-Einstellungen
 
 ## 🛠️ Technologien
 

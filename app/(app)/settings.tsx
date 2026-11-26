@@ -1,8 +1,7 @@
 import { router } from "expo-router";
 import { signOut } from "firebase/auth";
+import { useContext } from "react";
 import {
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,14 +10,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AuthContext } from "../../context/AuthContext";
 import { auth } from "../../firebase/config";
-import { resetUserProgress } from "../../services/progressService";
 import { saveThemeMode as saveThemeModeSetting } from "../../services/settingsService";
 import { ThemeMode } from "../../theme/ThemeContext";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function SettingsScreen() {
   const { colors, mode, setMode } = useAppTheme();
+  const { user, isGuest, endGuestMode } = useContext(AuthContext);
 
   async function saveThemeMode(value: ThemeMode) {
     const user = auth.currentUser;
@@ -37,57 +37,13 @@ export default function SettingsScreen() {
   }
 
   async function logout() {
+    if (isGuest) {
+      endGuestMode();
+      router.replace("/login");
+      return;
+    }
+
     await signOut(auth);
-  }
-
-  async function resetProgress() {
-    const user = auth.currentUser;
-
-    if (!user) {
-      return;
-    }
-
-    try {
-      await resetUserProgress(user.uid);
-
-      if (Platform.OS === "web") {
-        window.alert("Fortschritt wurde zurückgesetzt.");
-      } else {
-        Alert.alert("Erledigt", "Fortschritt wurde zurückgesetzt.");
-      }
-    } catch (error) {
-      console.error("Fehler beim Zurücksetzen:", error);
-    }
-  }
-
-  function confirmResetProgress() {
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm(
-        "Möchtest du wirklich deinen gesamten Lernfortschritt löschen?",
-      );
-
-      if (confirmed) {
-        resetProgress();
-      }
-
-      return;
-    }
-
-    Alert.alert(
-      "Fortschritt zurücksetzen",
-      "Möchtest du wirklich deinen gesamten Lernfortschritt löschen?",
-      [
-        {
-          text: "Abbrechen",
-          style: "cancel",
-        },
-        {
-          text: "Zurücksetzen",
-          style: "destructive",
-          onPress: resetProgress,
-        },
-      ],
-    );
   }
 
   return (
@@ -221,60 +177,6 @@ export default function SettingsScreen() {
               style={[
                 styles.sectionTitle,
                 {
-                  color: colors.danger,
-                },
-              ]}
-            >
-              Lernfortschritt
-            </Text>
-
-            <Text
-              style={[
-                styles.helperText,
-                {
-                  color: colors.textMuted,
-                },
-              ]}
-            >
-              Löscht alle gelernten Karten und Tagesfortschritte. Deine
-              Einstellungen bleiben erhalten.
-            </Text>
-
-            <Pressable
-              style={[
-                styles.dangerButton,
-                {
-                  borderColor: colors.danger,
-                },
-              ]}
-              onPress={confirmResetProgress}
-            >
-              <Text
-                style={[
-                  styles.dangerText,
-                  {
-                    color: colors.danger,
-                  },
-                ]}
-              >
-                Fortschritt zurücksetzen
-              </Text>
-            </Pressable>
-          </View>
-
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.sectionTitle,
-                {
                   color: colors.text,
                 },
               ]}
@@ -290,7 +192,7 @@ export default function SettingsScreen() {
                 },
               ]}
             >
-              {auth.currentUser?.email}
+              {isGuest ? "Du übst als Gast. Dein Fortschritt wird nicht gespeichert." : user?.email}
             </Text>
 
             <Pressable
@@ -311,7 +213,7 @@ export default function SettingsScreen() {
                   },
                 ]}
               >
-                Abmelden
+                {isGuest ? "Anmelden oder registrieren" : "Abmelden"}
               </Text>
             </Pressable>
           </View>
@@ -398,11 +300,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  helperText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
   optionText: {
     fontSize: 15,
     fontWeight: "700",
@@ -437,19 +334,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 15,
     fontWeight: "600",
-  },
-
-  dangerButton: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dangerText: {
-    fontSize: 15,
-    fontWeight: "700",
   },
 
   backButton: {

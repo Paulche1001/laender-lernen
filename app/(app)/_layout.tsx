@@ -5,7 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { AuthContext } from "../../context/AuthContext";
 
 export default function AppLayout() {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, isGuest } = useContext(AuthContext);
 
   if (loading) {
     return (
@@ -21,7 +21,7 @@ export default function AppLayout() {
     );
   }
 
-  if (!user) {
+  if (!user && !isGuest) {
     return <Redirect href="/login" />;
   }
 

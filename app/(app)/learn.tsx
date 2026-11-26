@@ -1,6 +1,6 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { useContext, useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { createEmptyCard } from "ts-fsrs";
 
@@ -8,6 +8,7 @@ import { FlashCard } from "../../components/learning/FlashCard";
 import { LearningStateCard } from "../../components/learning/LearningStateCard";
 import { RatingButtons } from "../../components/learning/RatingButtons";
 import { SessionHeader } from "../../components/learning/SessionHeader";
+import { AuthContext } from "../../context/AuthContext";
 import { countries } from "../../data/countries";
 import { auth } from "../../firebase/config";
 import { scheduler, toFsrsRating, type Rating } from "../../learning/fsrs";
@@ -55,6 +56,7 @@ function createSession(
 }
 
 export default function LearnScreen() {
+  const { user, isGuest, guestCardCount } = useContext(AuthContext);
   const [revealed, setRevealed] = useState(false);
   const [progress, setProgress] = useState<Record<string, CardProgress>>({});
   const [sessionCountries, setSessionCountries] = useState<typeof countries>(
@@ -72,7 +74,16 @@ export default function LearnScreen() {
     let cancelled = false;
 
     async function initializeLearning() {
-      const user = auth.currentUser;
+      setLoading(true);
+      setRevealed(false);
+      setCurrentIndex(0);
+
+      if (isGuest) {
+        setProgress({});
+        setSessionCountries(shuffleArray(countries).slice(0, guestCardCount));
+        setLoading(false);
+        return;
+      }
 
       if (!user) {
         if (!cancelled) {
@@ -115,10 +126,10 @@ export default function LearnScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user, isGuest, guestCardCount]);
 
   async function rateCard(rating: Rating) {
-    if (isSaving || !country) {
+    if (isGuest || isSaving || !country) {
       return;
     }
 
@@ -183,7 +194,7 @@ export default function LearnScreen() {
       >
         <LearningStateCard
           title="Wird geladen..."
-          text="Dein Lernfortschritt wird vorbereitet."
+          text={isGuest ? "Deine Übungsrunde wird vorbereitet." : "Dein Lernfortschritt wird vorbereitet."}
         />
       </SafeAreaView>
     );
@@ -204,8 +215,10 @@ export default function LearnScreen() {
       >
         <LearningStateCard
           emoji="🎉"
-          title="Alles erledigt"
-          text="Aktuell sind keine Karten fällig."
+          title={isGuest ? "Übung abgeschlossen" : "Alles erledigt"}
+          text={isGuest
+            ? `Du hast ${sessionCountries.length} Länder geübt. Dein Fortschritt wurde nicht gespeichert. Starte eine neue Runde mit einer neuen zufälligen Auswahl.`
+            : "Aktuell sind keine Karten fällig."}
           buttonLabel="Zurück zum Start"
           onPress={() => router.replace("/")}
         />
@@ -229,6 +242,7 @@ export default function LearnScreen() {
       <View style={styles.page}>
         <View style={styles.content}>
           <SessionHeader
+            title={isGuest ? "Gastmodus" : "Lernmodus"}
             current={currentIndex + 1}
             total={sessionCountries.length}
             onClose={() => router.replace("/")}
@@ -241,7 +255,27 @@ export default function LearnScreen() {
             onReveal={() => setRevealed(true)}
           />
 
-          {revealed && (
+          {revealed && isGuest && (
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.nextButton,
+                { backgroundColor: pressed ? colors.primaryPressed : colors.primary },
+              ]}
+              onPress={() => {
+                setRevealed(false);
+                setCurrentIndex((prev) => prev + 1);
+              }}
+            >
+              <Text style={styles.nextButtonText}>
+                {currentIndex === sessionCountries.length - 1
+                  ? "Übung abschließen"
+                  : "Nächstes Land"}
+              </Text>
+            </Pressable>
+          )}
+
+          {revealed && !isGuest && (
             <RatingButtons
               preview={preview}
               onRate={rateCard}
@@ -255,6 +289,20 @@ export default function LearnScreen() {
 }
 
 const styles = StyleSheet.create({
+  nextButton: {
+    minHeight: 52,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  nextButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+
   safeArea: {
     flex: 1,
   },

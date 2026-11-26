@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { FirebaseError } from "firebase/app";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,11 +13,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { AuthContext } from "../../context/AuthContext";
 import { auth } from "../../firebase/config";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
+  const { startGuestMode } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +68,7 @@ export default function LoginScreen() {
         },
       ]}
     >
-      <View style={styles.page}>
+      <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text
@@ -206,9 +209,31 @@ export default function LoginScreen() {
                 </Text>
               </Pressable>
             </View>
+            <Pressable
+              disabled={loginLoading}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.guestButton,
+                {
+                  borderColor: colors.border,
+                  backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
+                },
+              ]}
+              onPress={() => {
+                startGuestMode();
+                router.replace("/");
+              }}
+            >
+              <Text style={[styles.registerLink, { color: colors.primary }]}>
+                Ohne Anmeldung üben
+              </Text>
+            </Pressable>
+            <Text style={[styles.guestHint, { color: colors.textMuted }]}>
+              Zufällige Länder abfragen. Dein Fortschritt wird nicht gespeichert.
+            </Text>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -219,7 +244,8 @@ const styles = StyleSheet.create({
   },
 
   page: {
-    flex: 1,
+    flexGrow: 1,
+    paddingVertical: 24,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -286,6 +312,21 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  guestButton: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  guestHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
 
   registerRow: {

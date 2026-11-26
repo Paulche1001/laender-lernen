@@ -3,12 +3,13 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 type Props = {
+  title?: string;
   current: number;
   total: number;
   onClose: () => void;
 };
 
-export function SessionHeader({ current, total, onClose }: Props) {
+export function SessionHeader({ title = "Lernmodus", current, total, onClose }: Props) {
   const { colors } = useAppTheme();
 
   const progressPercent = total > 0 ? (current / total) * 100 : 0;
@@ -25,7 +26,7 @@ export function SessionHeader({ current, total, onClose }: Props) {
               },
             ]}
           >
-            Lernmodus
+            {title}
           </Text>
 
           <Text

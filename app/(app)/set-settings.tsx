@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useContext, useEffect, useRef, useState } from "react";
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { auth } from "../../firebase/config";
+import { AuthContext } from "../../context/AuthContext";
+import { resetSetProgress } from "../../services/progressService";
 import {
     getSetSettings,
     saveSetNewCardsPerDay,
@@ -28,6 +29,7 @@ function getSetTitle(setId: string) {
 
 export default function SetSettingsScreen() {
   const { colors } = useAppTheme();
+  const { user, isGuest, guestCardCount, setGuestCardCount } = useContext(AuthContext);
 
   const params = useLocalSearchParams<{
     setId?: string;
@@ -36,14 +38,14 @@ export default function SetSettingsScreen() {
   const setId = params.setId ?? "countries";
   const setTitle = getSetTitle(setId);
 
-  const [newCardsPerDay, setNewCardsPerDay] = useState(10);
-  const [loading, setLoading] = useState(true);
+  const [newCardsPerDay, setNewCardsPerDay] = useState(isGuest ? guestCardCount : 10);
+  const [loading, setLoading] = useState(!isGuest);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const resetInFlight = useRef(false);
 
   useEffect(() => {
-    const user = auth.currentUser;
-
-    if (!user) {
+    if (isGuest || !user) {
       return;
     }
 
@@ -67,14 +69,21 @@ export default function SetSettingsScreen() {
     return () => {
       cancelled = true;
     };
-  }, [setId]);
+  }, [setId, user, isGuest]);
 
   async function updateNewCardsPerDay(value: number) {
-    const user = auth.currentUser;
+    if (resetInFlight.current || !Number.isFinite(value)) {
+      return;
+    }
 
-    const safeValue = Math.max(0, Math.min(100, value));
+    const safeValue = Math.max(isGuest ? 1 : 0, Math.min(100, Math.trunc(value)));
 
     setNewCardsPerDay(safeValue);
+
+    if (isGuest) {
+      setGuestCardCount(safeValue);
+      return;
+    }
 
     if (!user) {
       return;
@@ -94,7 +103,53 @@ export default function SetSettingsScreen() {
     }
   }
 
-  if (loading) {
+  function showMessage(title: string, message: string) {
+    if (Platform.OS === "web") {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  }
+
+  async function resetProgress() {
+    if (!user || isGuest || resetInFlight.current || saving) {
+      return;
+    }
+
+    resetInFlight.current = true;
+    setResetting(true);
+    try {
+      await resetSetProgress(user.uid, setId);
+      showMessage("Fortschritt zurückgesetzt", `Der Lernfortschritt im Set „${setTitle}“ wurde zurückgesetzt.`);
+    } catch (error) {
+      console.error("Set-Fortschritt konnte nicht zurückgesetzt werden:", error);
+      showMessage("Zurücksetzen fehlgeschlagen", "Der Fortschritt konnte nicht vollständig zurückgesetzt werden. Bitte prüfe deine Verbindung und versuche es erneut.");
+    } finally {
+      resetInFlight.current = false;
+      setResetting(false);
+    }
+  }
+
+  function confirmResetProgress() {
+    if (!user || isGuest || resetInFlight.current || saving) {
+      return;
+    }
+
+    const warning = `Achtung: Du löschst alle gelernten Karten und Tagesfortschritte im Set „${setTitle}“.\n\nDas kann in der App nicht rückgängig gemacht werden. Andere Lernsets und deine Einstellungen bleiben erhalten.\n\nMöchtest du das Set „${setTitle}“ wirklich zurücksetzen?`;
+    if (Platform.OS === "web") {
+      if (window.confirm(warning)) {
+        void resetProgress();
+      }
+      return;
+    }
+
+    Alert.alert(`„${setTitle}“ zurücksetzen?`, warning, [
+      { text: "Abbrechen", style: "cancel", isPreferred: true },
+      { text: "Ja, Fortschritt löschen", style: "destructive", onPress: () => void resetProgress() },
+    ]);
+  }
+
+  if (loading && !isGuest) {
     return (
       <SafeAreaView
         style={[
@@ -126,7 +181,7 @@ export default function SetSettingsScreen() {
         },
       ]}
     >
-      <View style={styles.page}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.page}>
         <View style={styles.content}>
           <View style={styles.header}>
             <Text
@@ -169,7 +224,7 @@ export default function SetSettingsScreen() {
                 },
               ]}
             >
-              Neue Karten pro Tag
+              {isGuest ? "Länder pro Übungsrunde" : "Neue Karten pro Tag"}
             </Text>
 
             <Text
@@ -180,8 +235,9 @@ export default function SetSettingsScreen() {
                 },
               ]}
             >
-              Bestimmt, wie viele neue Karten dieses Set pro Tag hinzufügen
-              darf.
+              {isGuest
+                ? "Wähle zwischen 1 und 100 zufälligen Ländern pro Runde. Dein Fortschritt wird nicht gespeichert."
+                : "Bestimmt, wie viele neue Karten dieses Set pro Tag hinzufügen darf."}
             </Text>
 
             <View style={styles.numberControl}>
@@ -193,7 +249,7 @@ export default function SetSettingsScreen() {
                     borderColor: colors.border,
                   },
                 ]}
-                disabled={saving}
+                disabled={saving || resetting}
                 onPress={() => updateNewCardsPerDay(newCardsPerDay - 1)}
               >
                 <Text
@@ -219,8 +275,9 @@ export default function SetSettingsScreen() {
                 ]}
                 value={String(newCardsPerDay)}
                 keyboardType="number-pad"
+                maxLength={3}
                 selectTextOnFocus
-                editable={!saving}
+                editable={!saving && !resetting}
                 onChangeText={(text) => {
                   const value = Number(text);
 
@@ -228,7 +285,8 @@ export default function SetSettingsScreen() {
                     setNewCardsPerDay(value);
                   }
                 }}
-                onEndEditing={() => updateNewCardsPerDay(newCardsPerDay)}
+                onBlur={() => updateNewCardsPerDay(newCardsPerDay)}
+                onSubmitEditing={() => updateNewCardsPerDay(newCardsPerDay)}
               />
 
               <Pressable
@@ -239,7 +297,7 @@ export default function SetSettingsScreen() {
                     borderColor: colors.border,
                   },
                 ]}
-                disabled={saving}
+                disabled={saving || resetting}
                 onPress={() => updateNewCardsPerDay(newCardsPerDay + 1)}
               >
                 <Text
@@ -269,7 +327,36 @@ export default function SetSettingsScreen() {
             )}
           </View>
 
+          {!isGuest && (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.danger }]}>
+              <Text style={[styles.sectionTitle, { color: colors.danger }]}>
+                Lernfortschritt zurücksetzen
+              </Text>
+              <Text style={[styles.helperText, { color: colors.text }]}>
+                Achtung: Alle gelernten Karten und Tagesfortschritte im Set „{setTitle}“
+                werden gelöscht. Das kann in der App nicht rückgängig gemacht werden.
+              </Text>
+              <Text style={[styles.helperText, { color: colors.textMuted }]}>
+                Andere Lernsets und deine Einstellungen bleiben erhalten.
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={saving || resetting}
+                style={({ pressed }) => [
+                  styles.dangerButton,
+                  { borderColor: colors.danger, backgroundColor: pressed ? colors.surfaceMuted : colors.surface, opacity: saving || resetting ? 0.6 : 1 },
+                ]}
+                onPress={confirmResetProgress}
+              >
+                <Text style={[styles.dangerText, { color: colors.danger }]}>
+                  {resetting ? "Wird zurückgesetzt…" : `Fortschritt für „${setTitle}“ zurücksetzen`}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
           <Pressable
+            disabled={resetting}
             style={({ pressed }) => [
               styles.backButton,
               {
@@ -291,7 +378,7 @@ export default function SetSettingsScreen() {
             </Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -301,9 +388,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  page: {
+  scrollView: {
     flex: 1,
+  },
+
+  page: {
+    flexGrow: 1,
     alignItems: "center",
+    paddingBottom: 24,
   },
 
   content: {
@@ -384,6 +476,21 @@ const styles = StyleSheet.create({
 
   savingText: {
     fontSize: 13,
+    textAlign: "center",
+  },
+
+  dangerButton: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  dangerText: {
+    fontSize: 15,
+    fontWeight: "700",
     textAlign: "center",
   },
 

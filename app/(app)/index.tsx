@@ -12,7 +12,7 @@ import { getSetSettings } from "../../services/settingsService";
 import { useAppTheme } from "../../theme/useAppTheme";
 
 export default function HomeScreen() {
-  const { user } = useContext(AuthContext);
+  const { user, isGuest, guestCardCount } = useContext(AuthContext);
   const { colors } = useAppTheme();
 
   const [dueCount, setDueCount] = useState(0);
@@ -27,6 +27,11 @@ export default function HomeScreen() {
       let cancelled = false;
 
       async function loadCardCounts() {
+        if (isGuest) {
+          setCardsLoading(false);
+          return;
+        }
+
         if (!user) {
           return;
         }
@@ -80,7 +85,7 @@ export default function HomeScreen() {
       return () => {
         cancelled = true;
       };
-    }, [user]),
+    }, [user, isGuest]),
   );
 
   return (
@@ -174,7 +179,7 @@ export default function HomeScreen() {
                     },
                   ]}
                 >
-                  Heute zu lernen
+                  {isGuest ? "Gastmodus · Zufällige Länder pro Runde" : "Heute zu lernen"}
                 </Text>
               </View>
 
@@ -230,7 +235,7 @@ export default function HomeScreen() {
                     },
                   ]}
                 >
-                  {totalCards}
+                  {isGuest ? Math.min(guestCardCount, countries.length) : totalCards}
                 </Text>
 
                 <Text
@@ -241,7 +246,9 @@ export default function HomeScreen() {
                     },
                   ]}
                 >
-                  {dueCount} Wiederholungen · {newCount} neue Karten
+                  {isGuest
+                    ? "Jede Runde eine neue zufällige Auswahl."
+                    : `${dueCount} Wiederholungen · ${newCount} neue Karten`}
                 </Text>
 
                 <Text
@@ -252,7 +259,9 @@ export default function HomeScreen() {
                     },
                   ]}
                 >
-                  Noch {unlearnedCount} ungelernt
+                  {isGuest
+                    ? "Dein Fortschritt wird nicht gespeichert. Die Anzahl änderst du über ⋮."
+                    : `Noch ${unlearnedCount} ungelernt`}
                 </Text>
 
                 <Pressable
@@ -266,7 +275,9 @@ export default function HomeScreen() {
                   ]}
                   onPress={() => router.navigate("/learn")}
                 >
-                  <Text style={styles.cardStartButtonText}>Lernen starten</Text>
+                  <Text style={styles.cardStartButtonText}>
+                    {isGuest ? "Übung starten" : "Lernen starten"}
+                  </Text>
                 </Pressable>
               </>
             )}
